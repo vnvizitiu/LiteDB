@@ -9,6 +9,7 @@ namespace LiteDB
     /// <summary>
     /// Helper class to get entity properties and map as BsonValue
     /// </summary>
+    /// https://msdn.microsoft.com/en-us/library/gg597391.aspx
     internal class Reflection
     {
         private delegate object CreateObject();

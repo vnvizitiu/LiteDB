@@ -26,6 +26,7 @@
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DocumentationFile>bin\Debug\Portable\LiteDB.xml</DocumentationFile>
+    <NoWarn>1591</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -61,7 +62,6 @@
     <Compile Include="Core\Database\DbVersion.cs" />
     <Compile Include="Core\Database\FileStorage.cs" />
     <Compile Include="Core\Database\OnModelCreating.cs" />
-    <Compile Include="Core\Database\Shell.cs" />
     <Compile Include="Core\Database\Utils.cs" />
     <Compile Include="Core\LiteDatabase.cs" />
     <Compile Include="DbEngine\Actions\Aggregate.cs" />
@@ -76,8 +76,6 @@
     <Compile Include="DbEngine\Actions\Stats.cs" />
     <Compile Include="DbEngine\Actions\Update.cs" />
     <Compile Include="DbEngine\DbEngine.cs" />
-    <Compile Include="DbEngine\Disks\EncryptedDiskService.cs" />
-    <Compile Include="DbEngine\Disks\FileDiskService.cs" />
     <Compile Include="DbEngine\Disks\IDiskService.cs" />
     <Compile Include="DbEngine\Disks\StreamDiskService.cs" />
     <Compile Include="DbEngine\Pages\BasePage.cs" />
@@ -138,46 +136,16 @@
     <Compile Include="Serializer\Mapper\EntityBuilder.cs" />
     <Compile Include="Serializer\Mapper\PropertyMapper.cs" />
     <Compile Include="Serializer\Mapper\Reflection.cs" />
-    <Compile Include="Shell\Commands\Collections\BaseCollection.cs" />
-    <Compile Include="Shell\Commands\Collections\Bulk.cs" />
-    <Compile Include="Shell\Commands\Collections\Count.cs" />
-    <Compile Include="Shell\Commands\Collections\Delete.cs" />
-    <Compile Include="Shell\Commands\Collections\Drop.cs" />
-    <Compile Include="Shell\Commands\Collections\DropIndex.cs" />
-    <Compile Include="Shell\Commands\Collections\EnsureIndex.cs" />
-    <Compile Include="Shell\Commands\Collections\Find.cs" />
-    <Compile Include="Shell\Commands\Collections\Indexes.cs" />
-    <Compile Include="Shell\Commands\Collections\Insert.cs" />
-    <Compile Include="Shell\Commands\Collections\Max.cs" />
-    <Compile Include="Shell\Commands\Collections\Min.cs" />
-    <Compile Include="Shell\Commands\Collections\Read.cs" />
-    <Compile Include="Shell\Commands\Collections\Rename.cs" />
-    <Compile Include="Shell\Commands\Collections\Stats.cs" />
-    <Compile Include="Shell\Commands\Collections\Update.cs" />
-    <Compile Include="Shell\Commands\FileStoage\BaseFileStorage.cs" />
-    <Compile Include="Shell\Commands\FileStoage\Delete.cs" />
-    <Compile Include="Shell\Commands\FileStoage\Download.cs" />
-    <Compile Include="Shell\Commands\FileStoage\Find.cs" />
-    <Compile Include="Shell\Commands\FileStoage\Update.cs" />
-    <Compile Include="Shell\Commands\FileStoage\Upload.cs" />
-    <Compile Include="Shell\Commands\IShellCommand.cs" />
-    <Compile Include="Shell\Commands\Others\DiskDump.cs" />
-    <Compile Include="Shell\Commands\Others\ShowCollections.cs" />
-    <Compile Include="Shell\Commands\Others\Shrink.cs" />
-    <Compile Include="Shell\LiteShell.cs" />
     <Compile Include="Utils\BinaryExtensions.cs" />
     <Compile Include="Utils\ByteReader.cs" />
     <Compile Include="Utils\ByteWriter.cs" />
-    <Compile Include="Utils\ConnectionString.cs" />
     <Compile Include="Utils\DictionaryExtensions.cs" />
     <Compile Include="Utils\ExpressionExtensions.cs" />
     <Compile Include="Utils\IndexNotFoundException.cs" />
-    <Compile Include="Utils\IOExceptionExtensions.cs" />
     <Compile Include="Utils\LazyLoad.cs" />
     <Compile Include="Utils\LiteException.cs" />
     <Compile Include="Utils\Logger.cs" />
     <Compile Include="Utils\MimeTypeConverter.cs" />
-    <Compile Include="Utils\SimpleAES.cs" />
     <Compile Include="Utils\StreamExtensions.cs" />
     <Compile Include="Utils\StringScanner.cs" />
   </ItemGroup>

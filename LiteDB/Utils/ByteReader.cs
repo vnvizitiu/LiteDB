@@ -132,13 +132,13 @@ namespace LiteDB
         {
             var length = this.ReadInt32();
             var bytes = this.ReadBytes(length);
-            return Encoding.UTF8.GetString(bytes);
+            return Encoding.UTF8.GetString(bytes, 0, length);
         }
 
         public string ReadString(int length)
         {
             var bytes = this.ReadBytes(length);
-            return Encoding.UTF8.GetString(bytes);
+            return Encoding.UTF8.GetString(bytes, 0, length);
         }
 
         public DateTime ReadDateTime()

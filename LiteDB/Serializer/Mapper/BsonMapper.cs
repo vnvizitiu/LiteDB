@@ -70,6 +70,7 @@ namespace LiteDB
                 deserialize: (bson) => new Uri(bson.AsString)
             );
 
+#if NET4
             this.RegisterType<NameValueCollection>
             (
                 serialize: (nv) =>
@@ -96,6 +97,7 @@ namespace LiteDB
                     return nv;
                 }
             );
+#endif
 
             #endregion Register CustomTypes
         }

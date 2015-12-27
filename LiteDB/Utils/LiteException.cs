@@ -48,10 +48,12 @@ namespace LiteDB
             return new LiteException(105, "Invalid database version: {0}", version);
         }
 
+#if NET4
         public static LiteException FileSizeExceeds(long limit)
         {
             return new LiteException(105, "Database size exceeds limit of {0}", ConnectionString.FormatFileSize(limit));
         }
+#endif
 
         public static LiteException CollectionLimitExceeded(int limit)
         {

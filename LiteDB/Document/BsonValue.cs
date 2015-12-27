@@ -637,6 +637,9 @@ namespace LiteDB
                 return BsonValue.Null;
             }
 
+#if PORTABLE
+            return text;
+#else
             if (!options.RemoveAccents)
             {
                 return text;
@@ -657,6 +660,7 @@ namespace LiteDB
             }
 
             return sb.ToString();
+#endif
         }
 
         #endregion GetBytesCount, Normalize

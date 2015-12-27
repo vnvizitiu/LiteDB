@@ -52,6 +52,7 @@ namespace LiteDB
             return this.Upload(new LiteFileInfo(id), stream);
         }
 
+#if NET4
         public LiteFileInfo Upload(string id, string filename)
         {
             using (var stream = new FileStream(filename, FileMode.Open, FileAccess.Read))
@@ -70,6 +71,7 @@ namespace LiteDB
                 return this.Upload(new LiteFileInfo(Path.GetFileName(filename), filename), stream);
             }
         }
+#endif
 
         /// <summary>
         /// Update metada on a file. File must exisits

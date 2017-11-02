@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
@@ -41,11 +42,6 @@ namespace LiteDB
         /// Type instantiator function to support IoC
         /// </summary>
         private readonly Func<Type, object> _typeInstantiator;
-
-        /// <summary>
-        /// Map for autoId type based functions
-        /// </summary>
-        private Dictionary<Type, AutoId> _autoId = new Dictionary<Type, AutoId>();
 
         /// <summary>
         /// Global instance used when no BsonMapper are passed in LiteDatabase ctor
@@ -104,10 +100,7 @@ namespace LiteDB
             this.ResolveFieldName = (s) => s;
             this.ResolveMember = (t, mi, mm) => { };
             this.ResolveCollectionName = (t) => Reflection.IsList(t) ? Reflection.GetListItemType(t).Name : t.Name;
-
-#if NET35
             this.IncludeFields = false;
-#endif
 
             _typeInstantiator = customTypeInstantiator ?? Reflection.CreateInstance;
 
@@ -123,33 +116,6 @@ namespace LiteDB
 
 
             #endregion Register CustomTypes
-
-            #region Register AutoId
-
-            // register AutoId for ObjectId, Guid and Int32
-            RegisterAutoId
-            (
-                value => value.Equals(ObjectId.Empty),
-                (db, col) => ObjectId.NewObjectId()
-            );
-
-            RegisterAutoId
-            (
-                value => value == Guid.Empty,
-                (db, col) => Guid.NewGuid()
-            );
-
-            RegisterAutoId
-            (
-                value => value == 0,
-                (db, col) =>
-                {
-                    var max = db.Max(col, "_id");
-                    return max.IsMaxValue ? 1 : (max + 1);
-                }
-            );
-
-            #endregion  
 
         }
 
@@ -175,68 +141,6 @@ namespace LiteDB
 
         #endregion
 
-        #region AutoId
-
-        /// <summary>
-        /// Register a custom Auto Id generator function for a type
-        /// </summary>
-        public void RegisterAutoId<T>(Func<T, bool> isEmpty, Func<LiteEngine, string, T> newId)
-        {
-            if (isEmpty == null) throw new ArgumentNullException("isEmpty");
-            if (newId == null) throw new ArgumentNullException("newId");
-
-            _autoId[typeof(T)] = new AutoId
-            {
-                IsEmpty = o => isEmpty((T)o),
-                NewId = (db, col) => newId(db, col)
-            };
-        }
-
-        /// <summary>
-        /// Set new Id in entity class if entity needs one
-        /// </summary>
-        public virtual void SetAutoId(object entity, LiteEngine engine, string collection)
-        {
-            if (entity == null) throw new ArgumentNullException("entity");
-            if (engine == null) throw new ArgumentNullException("engine");
-            if (collection.IsNullOrWhiteSpace()) throw new ArgumentNullException("collection");
-
-            // if object is BsonDocument, add _id as ObjectId
-            if (entity is BsonDocument)
-            {
-                var doc = entity as BsonDocument;
-                if (!doc.RawValue.ContainsKey("_id"))
-                {
-                    doc["_id"] = ObjectId.NewObjectId();
-                }
-                return;
-            }
-
-            // get fields mapper
-            var mapper = this.GetEntityMapper(entity.GetType());
-
-            var id = mapper.Id;
-
-            // if not id or no autoId = true
-            if (id == null || id.AutoId == false) return;
-
-            AutoId autoId;
-
-            if (_autoId.TryGetValue(id.DataType, out autoId))
-            {
-                var value = id.Getter(entity);
-
-                if (value == null || autoId.IsEmpty(value) == true)
-                {
-                    var newId = autoId.NewId(engine, collection);
-
-                    id.Setter(entity, newId);
-                }
-            }
-        }
-
-        #endregion
-
         /// <summary>
         /// Map your entity class to BsonDocument using fluent API
         /// </summary>
@@ -244,6 +148,34 @@ namespace LiteDB
         {
             return new EntityBuilder<T>(this);
         }
+
+        #region Get LinqVisitor processor
+
+        /// <summary>
+        /// Returns JSON path from a strong typed document using current mapper
+        /// </summary>
+        public string GetPath<T>(Expression<Func<T, object>> property)
+        {
+            return new QueryVisitor<T>(this).GetPath(property);
+        }
+
+        /// <summary>
+        /// Returns field name from a strong typed document using current mapper
+        /// </summary>
+        public string GetField<T>(Expression<Func<T, object>> property)
+        {
+            return new QueryVisitor<T>(this).GetField(property);
+        }
+
+        /// <summary>
+        /// Get Query object from a strong typed predicate using current mapper
+        /// </summary>
+        public Query GetQuery<T>(Expression<Func<T, bool>> predicate)
+        {
+            return new QueryVisitor<T>(this).Visit(predicate);
+        }
+
+        #endregion
 
         #region Predefinded Property Resolvers
 
@@ -340,7 +272,7 @@ namespace LiteDB
                 }
 
                 // test if field name is OK (avoid to check in all instances) - do not test internal classes, like DbRef
-                if (BsonDocument.IsValidFieldName(name) == false) throw LiteException.InvalidFormat(memberInfo.Name, name);
+                if (BsonDocument.IsValidFieldName(name) == false) throw LiteException.InvalidFormat(memberInfo.Name);
 
                 // create getter/setter function
                 var getter = Reflection.CreateGenericGetter(type, memberInfo);
@@ -348,9 +280,6 @@ namespace LiteDB
 
                 // check if property has [BsonId] to get with was setted AutoId = true
                 var autoId = (BsonIdAttribute)memberInfo.GetCustomAttributes(idAttr, false).FirstOrDefault();
-
-                // checks if this property has [BsonIndex]
-                var index = (BsonIndexAttribute)memberInfo.GetCustomAttributes(indexAttr, false).FirstOrDefault();
 
                 // get data type
                 var dataType = memberInfo is PropertyInfo ?
@@ -367,7 +296,6 @@ namespace LiteDB
                     FieldName = name,
                     MemberName = memberInfo.Name,
                     DataType = dataType,
-                    IsUnique = index == null ? false : index.Unique,
                     IsList = isList,
                     UnderlyingType = isList ? Reflection.GetListItemType(dataType) : dataType,
                     Getter = getter,
@@ -403,9 +331,8 @@ namespace LiteDB
         /// </summary>
         protected virtual MemberInfo GetIdMember(IEnumerable<MemberInfo> members)
         {
-            // Get all members and test in order: BsonIdAttribute, "Id" name, "<typeName>Id" name in this order
             return Reflection.SelectMember(members,
-#if NET35
+#if HAVE_ATTR_DEFINED
                 x => Attribute.IsDefined(x, typeof(BsonIdAttribute), true),
 #else
                 x => x.GetCustomAttribute(typeof(BsonIdAttribute)) != null,
@@ -466,13 +393,19 @@ namespace LiteDB
 
             member.Serialize = (obj, m) =>
             {
+                // supports null values when "SerializeNullValues = true"
+                if (obj == null) return BsonValue.Null;
+
                 var idField = entity.Id;
+
+                // #768 if using DbRef with interface with no ID mapped
+                if (idField == null) throw new LiteException("There is no _id field mapped in your type: " + member.DataType.FullName);
 
                 var id = idField.Getter(obj);
 
                 return new BsonDocument
                 {
-                    { "$id", new BsonValue(id) },
+                    { "$id", m.Serialize(id.GetType(), id, 0) },
                     { "$ref", collection }
                 };
             };
@@ -498,6 +431,9 @@ namespace LiteDB
 
             member.Serialize = (list, m) =>
             {
+                // supports null values when "SerializeNullValues = true"
+                if (list == null) return BsonValue.Null;
+
                 var result = new BsonArray();
                 var idField = entity.Id;
 
@@ -505,9 +441,11 @@ namespace LiteDB
                 {
                     if (item == null) continue;
 
+                    var id = idField.Getter(item);
+
                     result.Add(new BsonDocument
                     {
-                        { "$id", new BsonValue(idField.Getter(item)) },
+                        { "$id", m.Serialize(id.GetType(), id, 0) },
                         { "$ref", collection }
                     });
                 }

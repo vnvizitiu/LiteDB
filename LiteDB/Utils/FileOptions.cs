@@ -11,7 +11,7 @@ namespace LiteDB
         public long InitialSize { get; set; }
         public long LimitSize { get; set; }
         public FileMode FileMode { get; set; }
-#if !NET35
+#if HAVE_SYNC_OVER_ASYNC
         public bool Async { get; set; }
 #endif
 
@@ -20,15 +20,17 @@ namespace LiteDB
             this.Journal = true;
             this.InitialSize = BasePage.PAGE_SIZE;
             this.LimitSize = long.MaxValue;
-#if NET35
+#if HAVE_LOCK
             this.FileMode = FileMode.Shared;
+#else
+            this.FileMode = FileMode.Exclusive;
 #endif
         }
     }
 
     public enum FileMode
     {
-#if NET35
+#if HAVE_LOCK
         Shared,
 #endif
         Exclusive,
